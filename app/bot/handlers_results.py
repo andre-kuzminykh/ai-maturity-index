@@ -33,15 +33,7 @@ router = Router()
 async def _build_result(assessment_id: int) -> tuple[AssessmentResult, str | None]:
     """Build AssessmentResult from DB data."""
     async with async_session() as session:
-        # Load answers with question and category info
-        answers_result = await session.execute(
-            select(Answer)
-            .options(
-                selectinload(Answer.question).selectinload(lambda: __import__('app.db.models', fromlist=['Question']).Question.category)
-            )
-            .where(Answer.assessment_id == assessment_id)
-        )
-        # Workaround: load answers and questions separately
+        # Load answers
         answers_result = await session.execute(
             select(Answer).where(Answer.assessment_id == assessment_id)
         )
@@ -93,30 +85,25 @@ async def show_results(message: Message, state: FSMContext):
 
     result, user_role = await _build_result(assessment_id)
 
-    # Save deterministic results to DB
+    # Try LLM analysis
+    llm_sections = await get_llm_analysis(result)
+
+    # Save all results to DB
     async with async_session() as session:
         assessment = await session.get(Assessment, assessment_id)
         if assessment:
+            from datetime import datetime, timezone
             assessment.status = "completed"
             assessment.total_score_percent = result.total_percent
             assessment.maturity_level = result.maturity_level
             assessment.reliability_level = result.reliability
             assessment.result_json = result.to_dict()
-
-            from datetime import datetime, timezone
             assessment.completed_at = datetime.now(timezone.utc)
-
-    # Try LLM analysis
-    llm_sections = await get_llm_analysis(result)
-
-    # Save LLM results
-    async with async_session() as session:
-        assessment = await session.get(Assessment, assessment_id)
-        if assessment and llm_sections:
-            assessment.llm_summary = llm_sections.get("summary", "")
-            assessment.llm_swot = llm_sections.get("swot", "")
-            assessment.llm_recommendations = llm_sections.get("recommendations", "")
-            assessment.llm_roadmap = llm_sections.get("roadmap", "")
+            if llm_sections:
+                assessment.llm_summary = llm_sections.get("summary", "")
+                assessment.llm_swot = llm_sections.get("swot", "")
+                assessment.llm_recommendations = llm_sections.get("recommendations", "")
+                assessment.llm_roadmap = llm_sections.get("roadmap", "")
         await session.commit()
 
     # Store result in state for PDF/details
