@@ -1,15 +1,15 @@
-"""
-Entry point for the AI Maturity Index Telegram bot.
-"""
-
+"""Entry point: start the Telegram bot."""
 import asyncio
 import logging
 
 from aiogram import Bot, Dispatcher
+from aiogram.client.default import DefaultBotProperties
+from aiogram.fsm.storage.redis import RedisStorage
 
-from bot.config import settings
-from bot.database import close_db, get_db
-from bot.handlers import router
+from app.config import settings
+from app.db.engine import engine, Base, async_session
+from app.db.seed import seed_database
+from app.bot.router import get_main_router
 
 logging.basicConfig(
     level=logging.INFO,
@@ -18,28 +18,30 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+async def on_startup():
+    """Create tables and seed data."""
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
+    async with async_session() as session:
+        await seed_database(session)
+
+    logger.info("Database initialized and seeded")
+
+
 async def main():
-    if not settings.bot_token:
-        logger.error("BOT_TOKEN is not set. Create a .env file with BOT_TOKEN=your-token")
-        return
+    await on_startup()
 
-    # Initialize DB
-    await get_db()
-    logger.info("Database initialized")
+    storage = RedisStorage.from_url(settings.redis_url)
+    bot = Bot(
+        token=settings.telegram_bot_token,
+        default=DefaultBotProperties(parse_mode="HTML"),
+    )
+    dp = Dispatcher(storage=storage)
+    dp.include_router(get_main_router())
 
-    bot = Bot(token=settings.bot_token)
-    await bot.delete_webhook(drop_pending_updates=True)
-    logger.info("Webhook deleted, switching to polling")
-
-    dp = Dispatcher()
-    dp.include_router(router)
-
-    logger.info("Starting bot...")
-    try:
-        await dp.start_polling(bot)
-    finally:
-        await close_db()
-        await bot.session.close()
+    logger.info("Bot starting...")
+    await dp.start_polling(bot)
 
 
 if __name__ == "__main__":
