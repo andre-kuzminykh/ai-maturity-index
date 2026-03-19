@@ -10,6 +10,7 @@ from dataclasses import dataclass
 class Option:
     score: int
     text: str
+    button_label: str = ""
 
 
 @dataclass
@@ -18,6 +19,7 @@ class Question:
     category_code: str
     text: str
     options: list[Option]
+    hint: str = ""
 
 
 @dataclass
@@ -26,16 +28,17 @@ class Category:
     name: str
     weight: float
     order: int
+    emoji: str = ""
 
 
 CATEGORIES: list[Category] = [
-    Category(code="strategy", name="Стратегия и управление", weight=0.15, order=1),
-    Category(code="people", name="Люди и культура", weight=0.15, order=2),
-    Category(code="infrastructure", name="Инфраструктура", weight=0.15, order=3),
-    Category(code="data", name="Данные", weight=0.15, order=4),
-    Category(code="models", name="Модели", weight=0.15, order=5),
-    Category(code="implementation", name="Внедрение", weight=0.20, order=6),
-    Category(code="rnd", name="Исследования и разработки", weight=0.05, order=7),
+    Category(code="strategy", name="Стратегия и управление", weight=0.15, order=1, emoji="🎯"),
+    Category(code="people", name="Люди и культура", weight=0.15, order=2, emoji="👥"),
+    Category(code="infrastructure", name="Инфраструктура", weight=0.15, order=3, emoji="🏗"),
+    Category(code="data", name="Данные", weight=0.15, order=4, emoji="🗂"),
+    Category(code="models", name="Модели", weight=0.15, order=5, emoji="🧠"),
+    Category(code="implementation", name="Внедрение", weight=0.20, order=6, emoji="⚙️"),
+    Category(code="rnd", name="Исследования и разработки", weight=0.05, order=7, emoji="🔬"),
 ]
 
 CATEGORY_BY_CODE = {c.code: c for c in CATEGORIES}
