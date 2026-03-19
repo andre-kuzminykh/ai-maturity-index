@@ -1,10 +1,14 @@
+from __future__ import annotations
+
 import os
+from typing import List
+
 from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
     bot_token: str = ""
-    admin_ids: list[int] = []
+    admin_ids: List[int] = []
     database_url: str = "sqlite+aiosqlite:///data/bot.db"
 
     class Config:

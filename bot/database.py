@@ -3,10 +3,13 @@ SQLite database layer with aiosqlite.
 Stores users, assessments, and answers.
 """
 
+from __future__ import annotations
+
 import json
 import logging
 import os
 from datetime import datetime, timezone
+from typing import Optional
 
 import aiosqlite
 
@@ -14,7 +17,7 @@ from bot.config import settings
 
 logger = logging.getLogger(__name__)
 
-_db: aiosqlite.Connection | None = None
+_db: Optional[aiosqlite.Connection] = None
 
 
 async def get_db() -> aiosqlite.Connection:
