@@ -329,7 +329,7 @@ CATEGORIES_DATA = [
                 "short_explanation": "Насколько модели реально встроены в рабочие процессы.",
                 "options": [
                     {"score": 1, "label_short": "1️⃣ Нет", "text_full": "Продакшена нет."},
-                    {"score": 2, "label_short": "2️⃣ <10%", "text_full": "В проде менее 10% моделей."},
+                    {"score": 2, "label_short": "2️⃣ ‹10%", "text_full": "В проде менее 10% моделей."},
                     {"score": 3, "label_short": "3️⃣ 10-30%", "text_full": "В проде 10–30% моделей."},
                     {"score": 4, "label_short": "4️⃣ 50%+", "text_full": "В проде 50%+ моделей, есть автодеплой."},
                     {"score": 5, "label_short": "5️⃣ MLOps", "text_full": "Все модели живут в полном цикле MLOps."},
@@ -341,7 +341,7 @@ CATEGORIES_DATA = [
                 "text": "Какова скорость вывода моделей?",
                 "short_explanation": "Как быстро компания может адаптировать модели под меняющуюся среду.",
                 "options": [
-                    {"score": 1, "label_short": "1️⃣ >3 мес.", "text_full": "Более 3 месяцев."},
+                    {"score": 1, "label_short": "1️⃣ 3+ мес.", "text_full": "Более 3 месяцев."},
                     {"score": 2, "label_short": "2️⃣ 1-2 мес.", "text_full": "1–2 месяца, но нестабильно."},
                     {"score": 3, "label_short": "3️⃣ ~1 мес.", "text_full": "Около 1 месяца, процессы стандартизируются."},
                     {"score": 4, "label_short": "4️⃣ Дни", "text_full": "Несколько дней за счет шаблонов и автоматизации."},

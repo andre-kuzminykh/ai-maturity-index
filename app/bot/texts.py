@@ -1,4 +1,5 @@
 """Message texts for the bot."""
+from html import escape as html_escape
 from app.services.scoring import AssessmentResult
 
 WELCOME_TEXT = """🤖 <b>Диагностика ИИ-зрелости компании</b>
@@ -46,7 +47,7 @@ def format_question(
 ) -> str:
     """Format question screen message."""
     options_text = "\n".join(
-        f"{opt['label_short']}  {opt['text_full']}" for opt in options
+        f"{html_escape(opt['label_short'])}  {html_escape(opt['text_full'])}" for opt in options
     )
 
     return (
