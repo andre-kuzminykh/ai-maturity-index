@@ -28,6 +28,9 @@ async def main():
     logger.info("Database initialized")
 
     bot = Bot(token=settings.bot_token)
+    await bot.delete_webhook(drop_pending_updates=True)
+    logger.info("Webhook deleted, switching to polling")
+
     dp = Dispatcher()
     dp.include_router(router)
 
