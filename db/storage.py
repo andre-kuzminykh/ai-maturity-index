@@ -1,4 +1,5 @@
 """Database operations for users, assessments and answers."""
+from __future__ import annotations
 
 import json
 from datetime import datetime, timezone

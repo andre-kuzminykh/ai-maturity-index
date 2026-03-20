@@ -1,4 +1,5 @@
 """LLM service for generating AI-maturity analysis."""
+from __future__ import annotations
 
 import logging
 

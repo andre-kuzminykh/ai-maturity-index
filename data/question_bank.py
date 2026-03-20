@@ -2,6 +2,7 @@
 Банк вопросов AI-maturity диагностики.
 35 вопросов, 7 категорий по 5 вопросов.
 """
+from __future__ import annotations
 
 CATEGORIES = [
     {
