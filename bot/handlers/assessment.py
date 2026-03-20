@@ -6,6 +6,7 @@ from aiogram import Router, F
 from aiogram.filters import CommandStart
 from aiogram.types import Message, CallbackQuery
 
+from db.storage import Storage
 from data.question_bank import QUESTIONS
 from bot.keyboards.inline import (
     start_keyboard,
@@ -27,16 +28,14 @@ from services.llm import generate_analysis, get_fallback_analysis
 logger = logging.getLogger(__name__)
 router = Router()
 
-
-def _get_storage(event):
-    return event.bot["storage"]
+# In-memory cache for current assessment per user (not critical — DB is source of truth)
+_current_assessment: dict = {}
 
 
 # ── /start ────────────────────────────────────────────────────────
 
 @router.message(CommandStart())
-async def cmd_start(message: Message):
-    storage = _get_storage(message)
+async def cmd_start(message: Message, storage: Storage):
     user_id = await storage.get_or_create_user(message.from_user)
     active = await storage.get_active_assessment(user_id)
     has_progress = active is not None and active["current_question_index"] > 0
@@ -51,12 +50,10 @@ async def cmd_start(message: Message):
 # ── Start / Continue / Restart ────────────────────────────────────
 
 @router.callback_query(F.data == "start_assessment")
-async def on_start_assessment(callback: CallbackQuery):
-    storage = _get_storage(callback)
+async def on_start_assessment(callback: CallbackQuery, storage: Storage):
     user_id = await storage.get_or_create_user(callback.from_user)
     assessment_id = await storage.create_assessment(user_id)
-    callback.bot["current_assessment"] = callback.bot.get("current_assessment", {})
-    callback.bot["current_assessment"][callback.from_user.id] = assessment_id
+    _current_assessment[callback.from_user.id] = assessment_id
 
     await callback.message.edit_text(
         question_text(0),
@@ -67,8 +64,7 @@ async def on_start_assessment(callback: CallbackQuery):
 
 
 @router.callback_query(F.data == "continue")
-async def on_continue(callback: CallbackQuery):
-    storage = _get_storage(callback)
+async def on_continue(callback: CallbackQuery, storage: Storage):
     user_id = await storage.get_or_create_user(callback.from_user)
     active = await storage.get_active_assessment(user_id)
     if not active:
@@ -76,8 +72,7 @@ async def on_continue(callback: CallbackQuery):
         return
 
     idx = active["current_question_index"]
-    callback.bot["current_assessment"] = callback.bot.get("current_assessment", {})
-    callback.bot["current_assessment"][callback.from_user.id] = active["id"]
+    _current_assessment[callback.from_user.id] = active["id"]
 
     await callback.message.edit_text(
         question_text(idx),
@@ -90,8 +85,7 @@ async def on_continue(callback: CallbackQuery):
 # ── Answer handling ───────────────────────────────────────────────
 
 @router.callback_query(F.data.startswith("ans:"))
-async def on_answer(callback: CallbackQuery):
-    storage = _get_storage(callback)
+async def on_answer(callback: CallbackQuery, storage: Storage):
     parts = callback.data.split(":")
     q_index = int(parts[1])
     value = int(parts[2])  # 0 = don't know, 1-5 = answer
@@ -136,8 +130,7 @@ async def on_answer(callback: CallbackQuery):
 # ── Back button ───────────────────────────────────────────────────
 
 @router.callback_query(F.data.startswith("back:"))
-async def on_back(callback: CallbackQuery):
-    storage = _get_storage(callback)
+async def on_back(callback: CallbackQuery, storage: Storage):
     q_index = int(callback.data.split(":")[1])
     prev_index = q_index - 1
     if prev_index < 0:
@@ -172,8 +165,7 @@ async def on_abort_confirm(callback: CallbackQuery):
 
 
 @router.callback_query(F.data == "abort_yes")
-async def on_abort_yes(callback: CallbackQuery):
-    storage = _get_storage(callback)
+async def on_abort_yes(callback: CallbackQuery, storage: Storage):
     user_id = await storage.get_or_create_user(callback.from_user)
     active = await storage.get_active_assessment(user_id)
     answered = active["current_question_index"] if active else 0
@@ -189,8 +181,7 @@ async def on_abort_yes(callback: CallbackQuery):
 
 
 @router.callback_query(F.data == "abort_no")
-async def on_abort_no(callback: CallbackQuery):
-    storage = _get_storage(callback)
+async def on_abort_no(callback: CallbackQuery, storage: Storage):
     user_id = await storage.get_or_create_user(callback.from_user)
     active = await storage.get_active_assessment(user_id)
     if not active:
@@ -217,8 +208,7 @@ async def on_restart_confirm(callback: CallbackQuery):
 
 
 @router.callback_query(F.data == "restart_yes")
-async def on_restart_yes(callback: CallbackQuery):
-    storage = _get_storage(callback)
+async def on_restart_yes(callback: CallbackQuery, storage: Storage):
     user_id = await storage.get_or_create_user(callback.from_user)
 
     # Abandon current
@@ -228,8 +218,7 @@ async def on_restart_yes(callback: CallbackQuery):
 
     # Create new
     assessment_id = await storage.create_assessment(user_id)
-    callback.bot["current_assessment"] = callback.bot.get("current_assessment", {})
-    callback.bot["current_assessment"][callback.from_user.id] = assessment_id
+    _current_assessment[callback.from_user.id] = assessment_id
 
     await callback.message.edit_text(
         question_text(0),
@@ -240,8 +229,7 @@ async def on_restart_yes(callback: CallbackQuery):
 
 
 @router.callback_query(F.data == "restart_no")
-async def on_restart_no(callback: CallbackQuery):
-    storage = _get_storage(callback)
+async def on_restart_no(callback: CallbackQuery, storage: Storage):
     user_id = await storage.get_or_create_user(callback.from_user)
     active = await storage.get_active_assessment(user_id)
     if active and active["current_question_index"] > 0:

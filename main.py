@@ -33,14 +33,13 @@ async def main():
         token=config.BOT_TOKEN,
         default=DefaultBotProperties(parse_mode="HTML"),
     )
-    bot["storage"] = storage
 
     dp = Dispatcher()
     dp.include_router(assessment_router)
 
     logger.info("Bot starting...")
     try:
-        await dp.start_polling(bot)
+        await dp.start_polling(bot, storage=storage)
     finally:
         await db.close()
         await bot.session.close()
